@@ -1,0 +1,17 @@
+{
+  "test_name": "export to a text file",
+  "test_description": "",
+  "source": {
+    "type": "tm1",
+    "server": "planning_sample_prod",
+    "view": {
+        "cube":"plan_BudgetPlan",
+        "name": "Goal Input",
+        "type": "native"
+    }
+  },
+  "target": {
+    "type": "file",
+    "folder": "data_export"
+  }
+}

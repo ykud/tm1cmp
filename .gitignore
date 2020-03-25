@@ -1,0 +1,6 @@
+test.log
+**/test*.csv
+**/test*.json
+.DS_Store
+.vscode/settings.json
+**/*.csv
