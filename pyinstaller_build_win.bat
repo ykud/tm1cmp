@@ -1,1 +1,1 @@
-pyinstaller --hidden-import win32timezone --exclude-module pandas --exclude-module numpy --exclude-module tarfile --exclude-module lib2to3 --exclude-module asyncio --exclude-module distutils --exclude-module zipimport --exclude-module socketserver --exclude-module xml --exclude-module email --exclude-module unittest --onefile tm1diff.py
+pyinstaller --hidden-import win32timezone  --exclude-module tarfile --exclude-module lib2to3 --exclude-module zipimport --exclude-module socketserver --exclude-module unittest --onefile tm1diff.py

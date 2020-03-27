@@ -4,7 +4,6 @@ import logging
 import configparser
 import getopt
 import time
-import TM1py
 import json
 import csv
 import traceback
@@ -12,13 +11,10 @@ from os import scandir
 from pathlib import Path
 from os.path import isfile, join
 import concurrent.futures 
-import asyncio
 import dictdiffer 
 from TM1py.Services import TM1Service
 from TM1py.Utils import CaseAndSpaceInsensitiveTuplesDict
 from ast import literal_eval
-from pathlib import Path
-
 
 def query_cube_view (config, tm1_server_name, cube_name, view_name):
 	view_read_start_time =  time.time()
