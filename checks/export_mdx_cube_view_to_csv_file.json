@@ -1,0 +1,17 @@
+{
+  "test_name": "export to a text file",
+  "test_description": "",
+  "source": {
+    "type": "tm1",
+    "server": "planning_sample_prod",
+    "view": {
+        "cube":"plan_BudgetPlan",
+        "type": "mdx",
+        "mdx":"SELECT NON EMPTY TM1SubsetToSet([plan_chart_of_accounts],'Default') on ROWS, NON EMPTY TM1SubsetToSet([plan_time],'current_year_and_qtrs') on COLUMNS  FROM [plan_BudgetPlan] WHERE ([plan_version].[FY 2004 Budget],[plan_business_unit].[10000],[plan_department].[1000],[plan_exchange_rates].[actual],[plan_source].[goal])"
+    }
+  },
+  "target": {
+    "type": "file",
+    "folder": "data_export"
+  }
+}
