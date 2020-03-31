@@ -1,6 +1,6 @@
 {
-    "test_name": "let's generate a random view with some parameters",
-    "test_description": "",
+    "$schema": "./schema.json",
+    "name": "let's generate a random view with some parameters",
     "source": {
         "type": "tm1",
         "server": "planning_sample_prod",

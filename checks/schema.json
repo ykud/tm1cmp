@@ -1,270 +1,87 @@
 {
-
-    "$id": "tm1check.json",
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Tm1 Check",
+    "description": "A source to target check definition for tm1cmp",
     "type": "object",
-    "readOnly": false,
-    "writeOnly": false,
-    "minProperties": 0,
-    "title": "TM1 Check definition schema",
-    "description": "This describes how tm1check comparisons are defined",
-    "additionalProperties": true,
-    "required": [
-        "check_name",
-        "source",
-        "target"
-    ],
+     
     "properties": {
-        "check_name": {
-            "$id": "#/properties/test_name",
-            "type": "string",
-            "readOnly": false,
-            "writeOnly": false,
-            "minLength": 0,
-            "title": "Name of the check",
-            "description": "This is the name of the check we're running",
-            "default": "",
-            "examples": [
-                "let's generate a random view with some parameters"
-            ]
-        },
-        "source": {
-            "$id": "#/properties/source",
+        "name": {
+         "type": "string",
+        "description":" name of the check"
+         },
+         "tolerance":
+        {
+           "type": "number",
+           "description":"tolerance for comparing numeric values, difference below this will be considered equal"
+         },
+         "target": {
             "type": "object",
-            "readOnly": false,
-            "writeOnly": false,
-            "minProperties": 0,
-            "title": "The Source Schema",
-            "description": "Source of the comparison",
-            "default": {},
-            "examples": ,
-            "additionalProperties": true,
-            "required": [
-                "type",
-                "server",
-                "cube",
-                "view_type",
-                "view_name",
-                "view_definition"
-            ],
             "properties": {
                 "type": {
-                    "$id": "#/properties/source/properties/type",
                     "type": "string",
-                    "readOnly": false,
-                    "writeOnly": false,
-                    "minLength": 0,
-                    "title": "The Type Schema",
-                    "description": "Source type",
-                    "default": "",
-                    "enum": ["file","tm1"],
-                    "examples": [
-                        "tm1"
+                    "description":"are we comparing to a tm1 view or writing to file?",
+                    "enum": [
+                        "tm1",
+                        "file"
                     ]
+                },
+                "folder": {
+                    "type": "string",
+                    "description" : "folder to read file from"
+                },
+                "file": {
+                    "type": "string",
+                    "description" : "file name"
                 },
                 "server": {
-                    "$id": "#/properties/source/properties/server",
                     "type": "string",
-                    "readOnly": false,
-                    "writeOnly": false,
-                    "minLength": 0,
-                    "title": "The Server Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
-                    "examples": [
-                        "planning_sample_prod"
-                    ]
+                    "description": "name of tm1 server"
                 },
                 "cube": {
-                    "$id": "#/properties/source/properties/cube",
                     "type": "string",
-                    "readOnly": false,
-                    "writeOnly": false,
-                    "minLength": 0,
-                    "title": "The Cube Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
-                    "examples": [
-                        "plan_BudgetPlan"
-                    ]
+                    "description": "cube name"
                 },
                 "view_type": {
-                    "$id": "#/properties/source/properties/view_type",
                     "type": "string",
-                    "readOnly": false,
-                    "writeOnly": false,
-                    "minLength": 0,
-                    "title": "The View_type Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
-                    "examples": [
-                        "create"
+                    "description":"native : use an existing TM1 view, MDX : input a query, manual : generate a new view definition",
+                    "enum": [
+                        "create",
+                        "native",
+                        "mdx"
                     ]
                 },
                 "view_name": {
-                    "$id": "#/properties/source/properties/view_name",
+                    "type": "string"
+                },
+                "mdx": {
                     "type": "string",
-                    "readOnly": false,
-                    "writeOnly": false,
-                    "minLength": 0,
-                    "title": "The View_name Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
-                    "examples": [
-                        "temp"
-                    ]
+                    "description": "MDX query to execute"
                 },
                 "view_definition": {
-                    "$id": "#/properties/source/properties/view_definition",
                     "type": "array",
-                    "readOnly": false,
-                    "writeOnly": false,
-                    "uniqueItems": false,
-                    "minItems": 0,
-                    "minContains": 1,
-                    "title": "The View_definition Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": [],
-                    "additionalItems": true,
                     "items": {
-                        "$id": "#/properties/source/properties/view_definition/items",
                         "type": "object",
-                        "readOnly": false,
-                        "writeOnly": false,
-                        "minProperties": 0,
-                        "title": "The Items Schema",
-                        "description": "An explanation about the purpose of this instance.",
-                        "default": {},
-                        "examples": [
-                            {
-                                "elements": [
-                                    {
-                                        "element": "FY 2004 Budget"
-                                    },
-                                    {
-                                        "element": "FY 2005 Budget-baseline"
-                                    }
-                                ],
-                                "type": "element list",
-                                "dimension": "plan_version"
-                            },
-                            {
-                                "dimension": "plan_department",
-                                "elements": [
-                                    {
-                                        "element": "1000"
-                                    }
-                                ],
-                                "type": "element list"
-                            },
-                            {
-                                "number_of_random_elements": 10.0,
-                                "type": "random",
-                                "level_of_random_elements": "0",
-                                "dimension": "plan_chart_of_accounts"
-                            },
-                            {
-                                "type": "subset",
-                                "subset_name": "current_year_and_qtrs",
-                                "dimension": "plan_time"
-                            },
-                            {
-                                "dimension": "plan_exchange_rates",
-                                "elements": [
-                                    {
-                                        "element": "actual"
-                                    }
-                                ],
-                                "type": "element list"
-                            },
-                            {
-                                "type": "element list",
-                                "dimension": "plan_source",
-                                "elements": [
-                                    {
-                                        "element": "goal"
-                                    }
-                                ]
-                            }
-                        ],
-                        "additionalProperties": true,
-                        "required": [
-                            "dimension",
-                            "type",
-                            "elements"
-                        ],
                         "properties": {
                             "dimension": {
-                                "$id": "#/properties/source/properties/view_definition/items/properties/dimension",
                                 "type": "string",
-                                "readOnly": false,
-                                "writeOnly": false,
-                                "minLength": 0,
-                                "title": "The Dimension Schema",
-                                "description": "An explanation about the purpose of this instance.",
-                                "default": "",
-                                "examples": [
-                                    "plan_version"
-                                ]
+                                "description": "dimension name"
                             },
                             "type": {
-                                "$id": "#/properties/source/properties/view_definition/items/properties/type",
                                 "type": "string",
-                                "readOnly": false,
-                                "writeOnly": false,
-                                "minLength": 0,
-                                "title": "The Type Schema",
-                                "description": "An explanation about the purpose of this instance.",
-                                "default": "",
-                                "examples": [
-                                    "element list"
-                                ]
+                                "enum": [
+                                    "element list",
+                                    "subset",
+                                    "random"
+                                ],
+                                "description": "list of elements, a subset or select a random number of elements"
                             },
                             "elements": {
-                                "$id": "#/properties/source/properties/view_definition/items/properties/elements",
                                 "type": "array",
-                                "readOnly": false,
-                                "writeOnly": false,
-                                "uniqueItems": false,
-                                "minItems": 0,
-                                "minContains": 1,
-                                "title": "The Elements Schema",
-                                "description": "An explanation about the purpose of this instance.",
-                                "default": [],
-                                "additionalItems": true,
                                 "items": {
-                                    "$id": "#/properties/source/properties/view_definition/items/properties/elements/items",
                                     "type": "object",
-                                    "readOnly": false,
-                                    "writeOnly": false,
-                                    "minProperties": 0,
-                                    "title": "The Items Schema",
-                                    "description": "An explanation about the purpose of this instance.",
-                                    "default": {},
-                                    "examples": [
-                                        {
-                                            "element": "FY 2004 Budget"
-                                        },
-                                        {
-                                            "element": "FY 2005 Budget-baseline"
-                                        }
-                                    ],
-                                    "additionalProperties": true,
-                                    "required": [
-                                        "element"
-                                    ],
                                     "properties": {
                                         "element": {
-                                            "$id": "#/properties/source/properties/view_definition/items/properties/elements/items/properties/element",
-                                            "type": "string",
-                                            "readOnly": false,
-                                            "writeOnly": false,
-                                            "minLength": 0,
-                                            "title": "The Element Schema",
-                                            "description": "An explanation about the purpose of this instance.",
-                                            "default": "",
-                                            "examples": [
-                                                "FY 2004 Budget"
-                                            ]
+                                            "type": "string"
                                         }
                                     }
                                 }
@@ -274,54 +91,96 @@
                 }
             }
         },
-        "target": {
-            "$id": "#/properties/target",
+        "source": {
             "type": "object",
-            "readOnly": false,
-            "writeOnly": false,
-            "minProperties": 0,
-            "title": "The Target Schema",
-            "description": "An explanation about the purpose of this instance.",
-            "default": {},
-            "examples": [
-                {
-                    "folder": "data_export",
-                    "type": "file"
-                }
-            ],
-            "additionalProperties": true,
-            "required": [
-                "type",
-                "folder"
-            ],
+            "description": "definition of source view or file",
             "properties": {
                 "type": {
-                    "$id": "#/properties/target/properties/type",
                     "type": "string",
-                    "readOnly": false,
-                    "writeOnly": false,
-                    "minLength": 0,
-                    "title": "The Type Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
-                    "examples": [
+                    "description":"are we comparing to a tm1 view or reading from a file?",
+                    "enum": [
+                        "tm1",
                         "file"
                     ]
                 },
                 "folder": {
-                    "$id": "#/properties/target/properties/folder",
                     "type": "string",
-                    "readOnly": false,
-                    "writeOnly": false,
-                    "minLength": 0,
-                    "title": "The Folder Schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "default": "",
-                    "examples": [
-                        "data_export"
+                    "description" : "folder to read file from"
+                },
+                "file": {
+                    "type": "string",
+                    "description" : "file name"
+                },
+                "server": {
+                    "type": "string",
+                    "description": "name of tm1 server"
+                },
+                "cube": {
+                    "type": "string",
+                    "description": "cube name"
+                },
+                "view_type": {
+                    "type": "string",
+                    "description":"native : use an existing TM1 view, MDX : input a query, manual : generate a new view definition",
+                    "enum": [
+                        "create",
+                        "native",
+                        "mdx"
                     ]
+                },
+                "view_name": {
+                    "type": "string"
+                },
+                "mdx": {
+                    "type": "string",
+                    "description": "MDX query to execute"
+                },
+                "view_definition": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "dimension": {
+                                "type": "string",
+                                "description": "dimension name"
+                            },
+                            "type": {
+                                "type": "string",
+                                "enum": [
+                                    "element list",
+                                    "subset",
+                                    "random"
+                                ],
+                                "description": "list of elements, a subset or select a random number of elements"
+                            },
+                            "elements": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "element": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "subset_name": {
+                                "type": "string",
+                                "description": "name of the subset"
+                            },
+                            "number_of_random_elements":{
+                                "type": "number",
+                                "description": "how many random elements we want to select"
+                            },
+                            "level_of_random_elements": {
+                                "type": "string",
+                                "description": "level of random elements to filter on, All for any, 0 for leaf"
+                            }
+                        }
+                    }
                 }
             }
         }
-    }
+    },
+    "required": [ "name", "source","target"]
 }

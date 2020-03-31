@@ -1,6 +1,6 @@
 {
-  "test_name": "export to a text file",
-  "test_description": "",
+  "$schema": "./schema.json",
+  "name": "export to a text file",
   "source": {
     "type": "tm1",
     "server": "planning_sample_prod",

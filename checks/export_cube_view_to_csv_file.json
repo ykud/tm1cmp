@@ -1,7 +1,6 @@
 {
   "$schema": "./schema.json",
-  "test_name": "export to a text file",
-  "test_description": "",
+  "name": "export to a text file",
   "tolerance":0.00001,
   "source": {
     "type": "tm1",
