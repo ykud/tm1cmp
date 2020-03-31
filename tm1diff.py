@@ -23,12 +23,12 @@ def query_cube_view (config, view_definition):
 	cube_name = view_definition ['cube']
 	if view_definition['view_type']=='native':
 		view_name = view_definition ['view_name']
-		with TM1Service(**config[tm1_server_name], timeout=50) as tm1:
+		with TM1Service(**config[tm1_server_name]) as tm1:
 			cell_set = tm1.cubes.cells.execute_view (cube_name, view_name, private=False)
 	elif view_definition['view_type']=='mdx':
 		mdx_query = view_definition['mdx']
 		view_name = "MDX query at %s" % (time.strftime("%Y%m%d-%H%M%S"))
-		with TM1Service(**config[tm1_server_name], timeout=50) as tm1:
+		with TM1Service(**config[tm1_server_name]) as tm1:
 			cell_set = tm1.cubes.cells.execute_mdx(mdx_query)
 	elif view_definition['view_type']=='create':
 		# this is where we try to create a new view and somehow 'randomise it' by selecting different elements
@@ -57,7 +57,7 @@ def query_cube_view (config, view_definition):
 					mdx_query_for_elements = "[%s].Members" % (dim['dimension'])
 				else:
 					mdx_query_for_elements = "TM1FilterByLevel([%s].Members,%s)" % (dim['dimension'], dim['level_of_random_elements'])
-				with TM1Service(**config[tm1_server_name], timeout=50) as tm1:
+				with TM1Service(**config[tm1_server_name]) as tm1:
 					# limiting number of entries to something smaller than total elements just in case there's way too many
 					element_list = tm1.dimensions.hierarchies.elements.execute_set_mdx(mdx=mdx_query_for_elements, top_records=number_of_elements_to_return * 30)
 					for i in range(1, number_of_elements_to_return):
@@ -77,7 +77,7 @@ def query_cube_view (config, view_definition):
 		view_definition ['view_type'] = 'mdx'
 		view_definition ['comment'] = "Converted manual view to MDX"
 		view_definition ['mdx'] = mdx_query
-		with TM1Service(**config[tm1_server_name], timeout=50) as tm1:
+		with TM1Service(**config[tm1_server_name]) as tm1:
 			cell_set = tm1.cubes.cells.execute_mdx(mdx_query)
 	else: 
 		logging.error("View type %s in test definition is not implemented" % (view_definition['view_type']) )
