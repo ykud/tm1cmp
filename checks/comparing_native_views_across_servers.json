@@ -1,6 +1,7 @@
 {
   "test_name": "testing before and after 2nd view",
   "test_description": "",
+  "tolerance":0.00001,
   "source": {
     "type": "tm1",
     "server": "planning_sample_prod",

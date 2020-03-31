@@ -1,0 +1,54 @@
+{
+    "test_name": "let's generate a random view with some parameters",
+    "test_description": "",
+    "source": {
+        "type": "tm1",
+        "server": "planning_sample_prod",
+        "cube":"plan_BudgetPlan",
+        "view_type": "create",
+        "view_name" : "temp",
+        "view_definition":
+            [
+              {
+                "dimension":"plan_version",
+                "type":"element list",
+                "elements":
+                  [{"element":"FY 2004 Budget"},
+                  {"element":"FY 2005 Budget-baseline"}]
+                },
+              {
+                "dimension":"plan_department",
+                "type":"element list",
+                "elements":
+                  [{"element":"1000"}]
+                },
+               {
+                "dimension":"plan_chart_of_accounts",
+                "type":"random",
+                "number_of_random_elements":10,
+                "level_of_random_elements":"0"
+                },
+                {
+                    "dimension":"plan_time",
+                    "type":"subset",
+                    "subset_name":"current_year_and_qtrs"
+                },
+                {
+                    "dimension":"plan_exchange_rates",
+                     "type":"element list",
+                     "elements":
+                        [{"element":"actual"}]
+                },
+                {
+                    "dimension":"plan_source",
+                    "type":"element list",
+                    "elements":
+                    [{"element":"goal"}]
+                }
+            ]        
+    },
+    "target": {
+        "type": "file", 
+        "folder": "data_export"
+    }
+}

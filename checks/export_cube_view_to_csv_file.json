@@ -1,14 +1,14 @@
 {
+  "$schema": "./schema.json",
   "test_name": "export to a text file",
   "test_description": "",
+  "tolerance":0.00001,
   "source": {
     "type": "tm1",
     "server": "planning_sample_prod",
-    "view": {
-        "cube":"plan_BudgetPlan",
-        "name": "Goal Input",
-        "type": "native"
-    }
+    "cube":"plan_BudgetPlan",
+    "view_name": "Goal Input",
+    "view_type": "native"
   },
   "target": {
     "type": "file",
