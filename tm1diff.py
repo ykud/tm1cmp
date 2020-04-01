@@ -21,6 +21,7 @@ def query_cube_view (config, view_definition):
 	view_read_start_time =  time.time()
 	tm1_server_name = view_definition ['server'] 
 	cube_name = view_definition ['cube']
+	# timeout is an int value an 
 	if view_definition['view_type']=='native':
 		view_name = view_definition ['view_name']
 		with TM1Service(**config[tm1_server_name]) as tm1:
@@ -122,8 +123,9 @@ def compare_cell_sets(check_file, cell_set_source, cell_set_target, check_tolera
 			field_names = ['change_type', 'cell', 'source_value','target_value']
 			num_of_variances = 0
 			for diff in dictdiffer.diff(cell_set_source, cell_set_target):
-				source_value = diff[2][0]
-				target_value = diff[2][1]
+				# defaulting none values to 0
+				source_value = (0 if diff[2][0] is None else diff[2][0])
+				target_value = (0 if diff[2][1] is None else diff[2][1])
 				# compare with given tolerance
 				#print ("source %f, target %f, variance %f, comparing to %f"%(source_value, target_value,abs(source_value - target_value),check_tolerance ) ))
 				if abs(source_value - target_value) > check_tolerance:
@@ -231,6 +233,7 @@ def main (argv):
 	num_errors = 0
 	config = configparser.ConfigParser()
 	config.read('config.ini')
+	print(config)
 	if isfile(input_file_or_folder):
 		test_files = [Path(input_file_or_folder)]
 	else:
