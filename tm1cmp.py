@@ -21,7 +21,7 @@ def query_cube_view (config, view_definition):
 	view_read_start_time =  time.time()
 	tm1_server_name = view_definition ['server'] 
 	cube_name = view_definition ['cube']
-	# timeout is an int value an 
+	logging.info ("Reading source view from %s.%s" %(tm1_server_name,cube_name))
 	if view_definition['view_type']=='native':
 		view_name = view_definition ['view_name']
 		with TM1Service(**config[tm1_server_name]) as tm1:
@@ -38,47 +38,45 @@ def query_cube_view (config, view_definition):
 		logging.debug("generating mdx query on our definition")
 		view_name = view_definition['view_name'] 
 		axes = list()
-		for dim in view_definition['view_definition']:
-			#print (dim['dimension'],dim['type'])
-			dim_elements = ''
-			if dim['type'] == 'element list':
-				# combine list of elements
-				list_of_dim_elements = list()
-				for el in dim['elements']:
-					dim_element = "[%s].[%s]"%(dim['dimension'], el['element'])
-					list_of_dim_elements.append(dim_element)
-				dim_elements = "{%s}" % (','.join(list_of_dim_elements))
-			elif dim['type'] == 'subset':
-				dim_elements = "TM1SubsetToSet([%s],'%s')"%(dim['dimension'],dim['subset_name'])
-			elif dim['type'] == 'random':
-				# create mdx based on selection
-				number_of_elements_to_return = int(dim['number_of_random_elements'])
-				list_of_dim_elements = list()
-				if dim['level_of_random_elements'] == 'All':
-					mdx_query_for_elements = "[%s].Members" % (dim['dimension'])
-				else:
-					mdx_query_for_elements = "TM1FilterByLevel([%s].Members,%s)" % (dim['dimension'], dim['level_of_random_elements'])
-				with TM1Service(**config[tm1_server_name]) as tm1:
-					# limiting number of entries to something smaller than total elements just in case there's way too many
-					element_list = tm1.dimensions.hierarchies.elements.execute_set_mdx(mdx=mdx_query_for_elements, top_records=number_of_elements_to_return * 30)
-					for i in range(1, number_of_elements_to_return):
-						dim_element = "[%s].[%s]"%(dim['dimension'], random.choice(element_list)[0]['Name'])
-						list_of_dim_elements.append(dim_element)
-				dim_elements = "{%s}" % (','.join(list_of_dim_elements))
-			axes.append(dim_elements)
-		column_axis = "%s " % (axes.pop())
-		row_axis = '*'.join(axes)
-		suppress_zeros = "NON EMPTY"	
-		if "suppress_zeros" in view_definition:
-			if view_definition['suppress_zeros'] == 'No':
-				suppress_zeros = ''
-		mdx_query = "SELECT %s %s on ROWS, %s %s on COLUMNS FROM [%s]" %(suppress_zeros, row_axis, suppress_zeros, column_axis, view_definition['cube'] )
-		logging.debug ("MDX query generated: %s" %(mdx_query))
-		# updating view definition to make it mdx view for comparison
-		view_definition ['view_type'] = 'mdx'
-		view_definition ['comment'] = "Converted manual view to MDX"
-		view_definition ['mdx'] = mdx_query
 		with TM1Service(**config[tm1_server_name]) as tm1:
+			for dim in view_definition['view_definition']:	
+				dim_elements = ''
+				if dim['type'] == 'element list':
+					# combine list of elements
+					list_of_dim_elements = list()
+					for el in dim['elements']:
+						dim_element = "[%s].[%s]"%(dim['dimension'], el['element'])
+						list_of_dim_elements.append(dim_element)
+					dim_elements = "{%s}" % (','.join(list_of_dim_elements))
+				elif dim['type'] == 'subset':
+					dim_elements = "TM1SubsetToSet([%s],'%s')"%(dim['dimension'],dim['subset_name'])
+				elif dim['type'] == 'random':
+					# create mdx based on selection
+					number_of_elements_to_return = int(dim['number_of_random_elements'])
+					list_of_dim_elements = list()
+					if dim['level_of_random_elements'] == 'All':
+						mdx_query_for_elements = "[%s].Members" % (dim['dimension'])
+					else:
+						mdx_query_for_elements = "TM1FilterByLevel([%s].Members,%s)" % (dim['dimension'], dim['level_of_random_elements'])
+						# limiting number of entries to something smaller than total elements just in case there's way too many
+						element_list = tm1.dimensions.hierarchies.elements.execute_set_mdx(mdx=mdx_query_for_elements, top_records=number_of_elements_to_return * 30)
+						for i in range(1, number_of_elements_to_return):
+							dim_element = "[%s].[%s]"%(dim['dimension'], random.choice(element_list)[0]['Name'])
+							list_of_dim_elements.append(dim_element)
+					dim_elements = "{%s}" % (','.join(list_of_dim_elements))
+				axes.append(dim_elements)
+			column_axis = "%s " % (axes.pop())
+			row_axis = '*'.join(axes)
+			suppress_zeros = "NON EMPTY"	
+			if "suppress_zeros" in view_definition:
+				if view_definition['suppress_zeros'] == 'No':
+					suppress_zeros = ''
+			mdx_query = "SELECT %s %s on ROWS, %s %s on COLUMNS FROM [%s]" %(suppress_zeros, row_axis, suppress_zeros, column_axis, view_definition['cube'] )
+			logging.debug ("MDX query generated: %s" %(mdx_query))
+			# updating view definition to make it mdx view for comparison
+			view_definition ['view_type'] = 'mdx'
+			view_definition ['comment'] = "Converted manual view to MDX"
+			view_definition ['mdx'] = mdx_query
 			cell_set = tm1.cubes.cells.execute_mdx(mdx_query)
 	else: 
 		logging.error("View type %s in test definition is not implemented" % (view_definition['view_type']) )
@@ -108,8 +106,6 @@ def read_cell_set_from_file(file_name):
 		# skip header
 		next(csv_reader, None)
 		for row in csv_reader:
-			#print(type(literal_eval(row['value'])))
-			#print(type(literal_eval(row['cell'])))
 			cell_set[literal_eval(row['cell'])] = literal_eval(row['value'])
 	return cell_set
 
@@ -117,7 +113,7 @@ def compare_cell_sets(check_file, cell_set_source, cell_set_target, check_tolera
 	# Compare results
 	source_target_match = True
 	if (cell_set_source != cell_set_target):
-			variances_folder = 'check_variances/'
+			variances_folder = 'variances/'
 			Path(variances_folder).mkdir(parents=True, exist_ok=True)
 			file_name_to_write_diff = join(variances_folder,"%s_%s.csv" % (Path(check_file).stem,time.strftime("%Y%m%d-%H%M%S")))
 			field_names = ['change_type', 'cell', 'source_value','target_value']
@@ -127,7 +123,6 @@ def compare_cell_sets(check_file, cell_set_source, cell_set_target, check_tolera
 				source_value = (0 if diff[2][0] is None else diff[2][0])
 				target_value = (0 if diff[2][1] is None else diff[2][1])
 				# compare with given tolerance
-				#print ("source %f, target %f, variance %f, comparing to %f"%(source_value, target_value,abs(source_value - target_value),check_tolerance ) ))
 				if abs(source_value - target_value) > check_tolerance:
 					num_of_variances = num_of_variances + 1
 					if num_of_variances == 1:
@@ -176,7 +171,7 @@ def run_check(input_file, config):
 	elif check_definition['target']['type'] == 'file':
 		# write results to the file
 		# need a special export folder? 
-		export_folder = 'test_exports'
+		export_folder = 'data_export'
 		if check_definition['target']['folder'] != '': export_folder = check_definition['target']['folder']
 		Path(export_folder).mkdir(parents=True, exist_ok=True)
 		file_name_to_export = join(export_folder,"%s_%s_export_data.csv" % (Path(input_file).stem,time.strftime("%Y%m%d-%H%M%S")))
@@ -196,9 +191,10 @@ def run_check(input_file, config):
 	
 
 def main (argv):
-	"""Command line format python3 tm1diff.py -i folder_with_tests -th number_of_threads -l test.log """
+	"""Command line format python3 tm1cmp.py -i folder_or_json_file -t number_of_threads -l log_file"""
 	# setting defaults
 	number_of_threads = 5
+	log_file = "tm1cmp_%s.log" % (time.strftime("%Y%m%d-%H%M%S"))
 	# getting command line arguments
 	try:
 		opts,args = getopt.getopt(argv, "h:i:t:m::l:", ["help","input=","threads=","log="])
@@ -219,25 +215,27 @@ def main (argv):
 		elif opt in ("-l","--log"):
 			log_file = arg
 
-	logging.basicConfig(filename=log_file,
-                            filemode='w',
-                            format='%(asctime)s,%(msecs)d %(threadName)s %(levelname)s %(message)s',
-                            datefmt='%H:%M:%S',
-                            level=logging.INFO)
-	# adding the console logger as well
-	logging.getLogger().addHandler(logging.StreamHandler())
-	logging.info("Starting to run tests from %s with %s threads, output log to %s" %(input_file_or_folder, number_of_threads, log_file))						
+	
 	starttime_full=time.time()
 	num_tests = 0
 	num_matches = 0
 	num_errors = 0
 	config = configparser.ConfigParser()
 	config.read('config.ini')
-	print(config)
+	log_level = config.get('global','loglevel') if config.has_option('global','loglevel') else 'INFO'
+	logging.basicConfig(filename=log_file,
+                            filemode='w',
+                            format='%(asctime)s,%(msecs)d %(threadName)s %(levelname)s %(message)s',
+                            datefmt='%H:%M:%S',
+                            level=log_level)
+	# adding the console logger as well
+	logging.getLogger().addHandler(logging.StreamHandler())
+	logging.info("Starting to run tests from %s with %s threads, output log to %s" %(input_file_or_folder, number_of_threads, log_file))						
+	
 	if isfile(input_file_or_folder):
 		test_files = [Path(input_file_or_folder)]
 	else:
-		test_files = [f for f in scandir(input_file_or_folder) if f.is_file()]
+		test_files = [f for f in scandir(input_file_or_folder) if f.is_file() & f.path.endswith('json') & (f.name != 'schema') ]
 	
 	with concurrent.futures.ThreadPoolExecutor(max_workers=number_of_threads,thread_name_prefix='Check') as executor:
 		checks_to_run = {executor.submit(run_check, test_file, config) :test_file for test_file in test_files}
