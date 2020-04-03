@@ -17,7 +17,7 @@ Views can be defined:
 
 ### How it works:
 - we define the comparisons in json file of a format like this (see checks folder for a set of examples)
-'''
+```
 {
   "$schema": "./schema.json",
   "name": "export to a text file",
@@ -34,12 +34,12 @@ Views can be defined:
     "folder": "data_export"
   }
 }
-'''
-- running 'tm1cmp.exe -i check_file.json' will export data from selected view to a file and generate a reverse definition check of this file agains the view
+```
+- running `tm1cmp.exe -i check_file.json` will export data from selected view to a file and generate a reverse definition check of this file agains the view
 - any variances in comparison will generate a 'source ' vs 'target' comparison file
 - connection config file should contain the required information to connect to your TM1 instance
 
 
 ### Additional information:
-- You can run multiple comparisons at the same time by running 'tm1cmp.exe -i folder_with_json_files', this will run 5 threads of comparisons in parallel. Number of threads to run in parallel can be adjusted with -t parameter, so 'tm1cmp.exe -i folder_with_json_files -t 10' will run 10 threads
+- You can run multiple comparisons at the same time by running `tm1cmp.exe -i folder_with_json_files`, this will run 5 threads of comparisons in parallel. Number of threads to run in parallel can be adjusted with -t parameter, so `tm1cmp.exe -i folder_with_json_files -t 10` will run 10 threads
 - tolerance parameter in the check definition allows you to define what level of variance is 'acceptable'. Sometimes you'd get differences 5th or 6th decimal point due to spreading or allocation variances between tm1 servers.
