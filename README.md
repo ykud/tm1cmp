@@ -39,6 +39,11 @@ Views can be defined:
 - any variances in comparison will generate a 'source ' vs 'target' comparison file
 - connection config file should contain the required information to connect to your TM1 instance
 
+## Installation instructions:
+- download the tm1cmp.exe from Releases tab of this project (windows only)
+- create config file defining how to connect to your PA server (s) -- [see example](config.ini)
+- create comparison json file -- [see examples](checks/)
+- run `tm1cmp.exe -i check_file.json` from command line
 
 ### Additional information:
 - You can run multiple comparisons at the same time by running `tm1cmp.exe -i folder_with_json_files`, this will run 5 threads of comparisons in parallel. Number of threads to run in parallel can be adjusted with -t parameter, so `tm1cmp.exe -i folder_with_json_files -t 10` will run 10 threads
