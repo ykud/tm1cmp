@@ -40,7 +40,7 @@ Views can be defined:
 - connection config file should contain the required information to connect to your TM1 instance
 
 ## Installation instructions:
-- download the tm1cmp.exe from Releases tab of this project (windows only)
+- download the tm1cmp.exe from [Releases](https://github.com/ykud/tm1cmp/releases) tab of this project (windows only)
 - create config file defining how to connect to your PA server (s) -- [see example](config.ini)
 - create comparison json file -- [see examples](checks/)
 - run `tm1cmp.exe -i check_file.json` from command line
