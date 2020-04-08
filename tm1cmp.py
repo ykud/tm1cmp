@@ -87,7 +87,7 @@ def query_cube_view (config, view_definition):
 def write_cell_set_to_file(cell_set, file_name):
 	logging.info ("Exporting source view to file %s" %(file_name))
 	field_names = ['cell', 'value']
-	with  open(file_name, 'w')  as export_file:
+	with  open(file_name, 'w', newline='')  as export_file:
 		# pickle is simpler but not human-readable
 		# pickle.dump(cell_set_source,export_file)
 		csv_writer = csv.DictWriter(export_file, fieldnames=field_names, quotechar='"',quoting=csv.QUOTE_ALL)
@@ -126,7 +126,7 @@ def compare_cell_sets(check_file, cell_set_source, cell_set_target, check_tolera
 				if abs(source_value - target_value) > check_tolerance:
 					num_of_variances = num_of_variances + 1
 					if num_of_variances == 1:
-						diff_file = open(file_name_to_write_diff, 'w')
+						diff_file = open(file_name_to_write_diff, 'w', newline='')
 						csv_writer = csv.DictWriter(diff_file, fieldnames=field_names, quotechar='"',quoting=csv.QUOTE_ALL)
 						csv_writer.writeheader()
 					csv_writer.writerow({'change_type':diff[0], 'cell':diff[1],'source_value':source_value, 'target_value':target_value})
