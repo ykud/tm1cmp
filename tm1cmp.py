@@ -7,6 +7,9 @@ import time
 import random
 import json
 import csv
+import keyring
+import getpass
+import base64
 import traceback
 from os import scandir
 from pathlib import Path
@@ -22,6 +25,19 @@ def query_cube_view (config, view_definition):
 	tm1_server_name = view_definition ['server'] 
 	cube_name = view_definition ['cube']
 	logging.info ("Reading source view from %s.%s" %(tm1_server_name,cube_name))
+	# check if there's a username defined for this server -- use keyring instead of password value in the config file, don't want to store passwords in config.ini
+	# if there's no username -- it's an SSO connection
+	user = config.get(tm1_server_name, 'user')
+	if  user is not None:
+		password = keyring.get_password("TM1_%s"%(tm1_server_name), user)
+		if password is None:
+			 keyring.set_password("TM1_%s"%(tm1_server_name), user, getpass.getpass(prompt="Please input password for user %s on TM1 server %s : "%(user, tm1_server_name)))
+			 password = keyring.get_password("TM1_%s"%(tm1_server_name), user)
+	# encode password in base64 if needed
+	if 'decode_b64' in config[tm1_server_name]:
+		if config[tm1_server_name]['decode_b64'].lower() == 'true':
+			password = str(base64.b64encode(password.encode('utf-8')),'utf-8')
+	config[tm1_server_name]['password'] = password
 	if view_definition['view_type']=='native':
 		view_name = view_definition ['view_name']
 		with TM1Service(**config[tm1_server_name]) as tm1:
