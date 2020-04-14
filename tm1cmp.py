@@ -7,6 +7,9 @@ import time
 import random
 import json
 import csv
+# keyring has an issue with pyinstaller: https://github.com/pyinstaller/pyinstaller/issues/4569
+# https://github.com/jaraco/keyring/issues/324
+# I'm following the hack of backend.py approach so far for windows build vm
 import keyring
 import getpass
 import base64
@@ -33,11 +36,9 @@ def query_cube_view (config, view_definition):
 		if password is None:
 			 keyring.set_password("TM1_%s"%(tm1_server_name), user, getpass.getpass(prompt="Please input password for user %s on TM1 server %s : "%(user, tm1_server_name)))
 			 password = keyring.get_password("TM1_%s"%(tm1_server_name), user)
-	# encode password in base64 if needed
-	if 'decode_b64' in config[tm1_server_name]:
-		if config[tm1_server_name]['decode_b64'].lower() == 'true':
-			password = str(base64.b64encode(password.encode('utf-8')),'utf-8')
-	config[tm1_server_name]['password'] = password
+	# encode password in base64
+	config[tm1_server_name]['decode_b64'] = 'True'
+	config[tm1_server_name]['password'] = str(base64.b64encode(password.encode('utf-8')),'utf-8')
 	if view_definition['view_type']=='native':
 		view_name = view_definition ['view_name']
 		with TM1Service(**config[tm1_server_name]) as tm1:
