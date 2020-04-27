@@ -14,7 +14,7 @@ import keyring
 import getpass
 import base64
 import traceback
-from os import scandir
+from os import scandir, environ
 from pathlib import Path
 from os.path import isfile, join
 import concurrent.futures 
@@ -77,7 +77,7 @@ def query_cube_view (config, view_definition):
 						mdx_query_for_elements = "TM1FilterByLevel([%s].Members,%s)" % (dim['dimension'], dim['level_of_random_elements'])
 						# limiting number of entries to something smaller than total elements just in case there's way too many
 						element_list = tm1.dimensions.hierarchies.elements.execute_set_mdx(mdx=mdx_query_for_elements, top_records=number_of_elements_to_return * 30)
-						for i in range(1, number_of_elements_to_return):
+						for __ in range(1, number_of_elements_to_return):
 							dim_element = "[%s].[%s]"%(dim['dimension'], random.choice(element_list)[0]['Name'])
 							list_of_dim_elements.append(dim_element)
 					dim_elements = "{%s}" % (','.join(list_of_dim_elements))
@@ -205,7 +205,20 @@ def run_check(input_file, config):
 	else:
 		check_tolerance = 0.00001
 	return compare_cell_sets(input_file, cell_set_source, cell_set_target,check_tolerance)
-	
+
+def check_proxies(config):
+	if 'HTTP_PROXY' in environ or 'HTTPS_PROXY' in environ:
+		if 'HTTP_PROXY' in environ:
+			logging.info("There's a HTTP proxy configured: %s"%(environ['HTTP_PROXY']))
+		if 'HTTPS_PROXY' in environ:
+			logging.info("There's a HTTPS proxy configured: %s"%(environ['HTTPS_PROXY']))
+		logging.info("If you have connectivity issues, try resetting the proxies in [global] section of config.ini file. Config parameters are HTTP_PROXY and HTTPS_PROXY")	
+	if config.has_option('global','HTTP_PROXY'):
+		environ['HTTP_PROXY'] = config.get('global','HTTP_PROXY')
+		logging.info("Resetting HTTP_PROXY to %s"%(environ['HTTP_PROXY']))
+	if config.has_option('global','HTTPS_PROXY'):
+		environ['HTTPS_PROXY'] = config.get('global','HTTPS_PROXY')
+		logging.info("Resetting HTTPS_PROXY to %s"%(environ['HTTPS_PROXY']))
 
 def main (argv):
 	"""Command line format python3 tm1cmp.py -i folder_or_json_file -t number_of_threads -l log_file"""
@@ -214,7 +227,7 @@ def main (argv):
 	log_file = "tm1cmp_%s.log" % (time.strftime("%Y%m%d-%H%M%S"))
 	# getting command line arguments
 	try:
-		opts,args = getopt.getopt(argv, "h:i:t:m::l:", ["help","input=","threads=","log="])
+		opts,__ = getopt.getopt(argv, "h:i:t:m::l:", ["help","input=","threads=","log="])
 	except getopt.GetoptError:
 		print (main.__doc__)
 		sys.exit(2)
@@ -248,7 +261,10 @@ def main (argv):
 	# adding the console logger as well
 	logging.getLogger().addHandler(logging.StreamHandler())
 	logging.info("Starting to run tests from %s with %s threads, output log to %s" %(input_file_or_folder, number_of_threads, log_file))						
-	
+	# check whether there's a proxy configured and notify user -- it can cause some issues with connections
+	# allow overriding proxy in global parameters
+	check_proxies(config)
+
 	if isfile(input_file_or_folder):
 		test_files = [Path(input_file_or_folder)]
 	else:
