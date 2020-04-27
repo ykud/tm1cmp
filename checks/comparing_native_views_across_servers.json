@@ -1,23 +1,19 @@
 {
-  "test_name": "testing before and after 2nd view",
-  "test_description": "",
+  "$schema": "./schema.json",
+  "name": "comparing a view between 2 tm1 servers",
   "tolerance":0.00001,
   "source": {
     "type": "tm1",
     "server": "planning_sample_prod",
-    "view": {
-        "cube":"plan_Report",
-        "name": "2003 LY Budget",
-        "type": "native"
-    }
+    "cube":"plan_Report",
+    "view_name": "2003 LY Budget",
+    "view_type": "native"
   },
   "target": {
     "type": "tm1",
     "server": "planning_sample_dev",
-    "view": {
-        "cube":"plan_Report",
-        "name": "2003 LY Budget",
-        "type": "native"
-    }
+    "cube":"plan_Report",
+    "view_name": "2003 LY Budget",
+    "view_type": "native"
   }
 }
