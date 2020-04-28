@@ -136,17 +136,39 @@ def compare_cell_sets(check_file, cell_set_source, cell_set_target, check_tolera
 			field_names = ['change_type', 'cell', 'source_value','target_value']
 			num_of_variances = 0
 			for diff in dictdiffer.diff(cell_set_source, cell_set_target):
-				# defaulting none values to 0
-				source_value = (0 if diff[2][0] is None else diff[2][0])
-				target_value = (0 if diff[2][1] is None else diff[2][1])
-				# compare with given tolerance
-				if abs(source_value - target_value) > check_tolerance:
+				# if change type is change -- compare values for tolerance, ignore this comparison for add or remove
+				recordVariance = False
+				change_type = diff[0]
+				if (change_type == 'change'):
+					# defaulting none values to 0
+					source_value = (0 if diff[2][0] is None else diff[2][0])
+					target_value = (0 if diff[2][1] is None else diff[2][1])
+					cell = diff[1]
+					# compare with given tolerance
+					if abs(source_value - target_value) > check_tolerance:
+						num_of_variances = num_of_variances + 1
+						recordVariance = True
+				elif change_type == 'add':
 					num_of_variances = num_of_variances + 1
-					if num_of_variances == 1:
-						diff_file = open(file_name_to_write_diff, 'w', newline='')
-						csv_writer = csv.DictWriter(diff_file, fieldnames=field_names, quotechar='"',quoting=csv.QUOTE_ALL)
-						csv_writer.writeheader()
-					csv_writer.writerow({'change_type':diff[0], 'cell':diff[1],'source_value':source_value, 'target_value':target_value})
+					source_value = 0
+					target_value = diff[2][0][1]['Value']
+					cell = diff[2][0][0]
+					recordVariance = True
+				elif change_type == 'remove':
+					num_of_variances = num_of_variances + 1
+					source_value = diff[2][0][1]['Value']
+					target_value = 0
+					cell = diff[2][0][0]
+					recordVariance = True
+				else:
+					raise Exception('Change type unknown')
+				# print header
+				if num_of_variances == 1:
+					diff_file = open(file_name_to_write_diff, 'w', newline='')
+					csv_writer = csv.DictWriter(diff_file, fieldnames=field_names, quotechar='"',quoting=csv.QUOTE_ALL)
+					csv_writer.writeheader()
+				if recordVariance: 
+					csv_writer.writerow({'change_type':change_type, 'cell':cell,'source_value':source_value, 'target_value':target_value})
 			if num_of_variances > 0:
 				diff_file.close()
 				logging.warning ("Source and target views do not match, %i cells vary, please find list of differences in the file %s" %(num_of_variances ,file_name_to_write_diff))
@@ -259,7 +281,9 @@ def main (argv):
                             datefmt='%H:%M:%S',
                             level=log_level)
 	# adding the console logger as well
-	logging.getLogger().addHandler(logging.StreamHandler())
+	consoleHandler = logging.StreamHandler()
+	consoleHandler.setFormatter(logging.Formatter('%(asctime)s,%(msecs)d %(threadName)s %(levelname)s %(message)s','%H:%M:%S'))
+	logging.getLogger().addHandler(consoleHandler)
 	logging.info("Starting to run tests from %s with %s threads, output log to %s" %(input_file_or_folder, number_of_threads, log_file))						
 	# check whether there's a proxy configured and notify user -- it can cause some issues with connections
 	# allow overriding proxy in global parameters
