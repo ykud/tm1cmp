@@ -30,15 +30,15 @@ def query_cube_view (config, view_definition):
 	logging.info ("Reading source view from %s.%s" %(tm1_server_name,cube_name))
 	# check if there's a username defined for this server -- use keyring instead of password value in the config file, don't want to store passwords in config.ini
 	# if there's no username -- it's an SSO connection
-	user = config.get(tm1_server_name, 'user')
-	if  user is not None:
+	if config.has_option(tm1_server_name, 'user'):
+		user = config.get(tm1_server_name, 'user')
 		password = keyring.get_password("TM1_%s"%(tm1_server_name), user)
 		if password is None:
 			 keyring.set_password("TM1_%s"%(tm1_server_name), user, getpass.getpass(prompt="Please input password for user %s on TM1 server %s : "%(user, tm1_server_name)))
 			 password = keyring.get_password("TM1_%s"%(tm1_server_name), user)
-	# encode password in base64
-	config[tm1_server_name]['decode_b64'] = 'True'
-	config[tm1_server_name]['password'] = str(base64.b64encode(password.encode('utf-8')),'utf-8')
+		# encode password in base64
+		config[tm1_server_name]['decode_b64'] = 'True'
+		config[tm1_server_name]['password'] = str(base64.b64encode(password.encode('utf-8')),'utf-8')
 	if view_definition['view_type']=='native':
 		view_name = view_definition ['view_name']
 		with TM1Service(**config[tm1_server_name]) as tm1:
