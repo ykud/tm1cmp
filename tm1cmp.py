@@ -143,7 +143,7 @@ def compare_cell_sets(check_file, cell_set_source, cell_set_target, check_tolera
 					# defaulting none values to 0
 					source_value = (0 if diff[2][0] is None else diff[2][0])
 					target_value = (0 if diff[2][1] is None else diff[2][1])
-					cell = diff[1]
+					cell = diff[1][0]
 					# compare with given tolerance
 					if abs(source_value - target_value) > check_tolerance:
 						num_of_variances = num_of_variances + 1
@@ -167,6 +167,7 @@ def compare_cell_sets(check_file, cell_set_source, cell_set_target, check_tolera
 					diff_file = open(file_name_to_write_diff, 'w', newline='')
 					csv_writer = csv.DictWriter(diff_file, fieldnames=field_names, quotechar='"',quoting=csv.QUOTE_ALL)
 					csv_writer.writeheader()
+					csv_writer.writerow({'change_type':change_type, 'cell':cell,'source_value':source_value, 'target_value':target_value})
 				if recordVariance: 
 					csv_writer.writerow({'change_type':change_type, 'cell':cell,'source_value':source_value, 'target_value':target_value})
 			if num_of_variances > 0:
@@ -188,7 +189,7 @@ def generate_reverse_json_check_file(check_file_name, original_json,  target_exp
 		reverse_check_config["source"] = reverse_check_config.pop("source2")
 		reverse_check_config["source"]["filename"] = target_export_file_name
 		with  open(json_check_file_name_reverse, 'w') as json_check_file:
-			json.dump(reverse_check_config, json_check_file)
+			json.dump(reverse_check_config, json_check_file, indent=4)
 		logging.info("Wrote a reverse of test %s to a file %s"%(check_file_name,json_check_file_name_reverse))
 
 def run_check(input_file, config):
