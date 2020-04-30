@@ -18,18 +18,18 @@ from os import scandir, environ
 from pathlib import Path
 from os.path import isfile, join
 import concurrent.futures 
-import dictdiffer 
 from TM1py.Services import TM1Service
 from TM1py.Utils import CaseAndSpaceInsensitiveTuplesDict
 from ast import literal_eval
 
-def query_cube_view (config, view_definition):
-	view_read_start_time =  time.time()
-	tm1_server_name = view_definition ['server'] 
-	cube_name = view_definition ['cube']
-	logging.info ("Reading source view from %s.%s" %(tm1_server_name,cube_name))
-	# check if there's a username defined for this server -- use keyring instead of password value in the config file, don't want to store passwords in config.ini
-	# if there's no username -- it's an SSO connection
+num_types = int, float
+
+def get_tm1_user_name_and_password(config, tm1_server_name):
+	"""	Check if there's a username defined for this server 
+		use keyring instead of password value in the config file
+	 	don't want to store passwords in config.ini
+	 	if there's no username -- it's an SSO connection
+	"""
 	if config.has_option(tm1_server_name, 'user'):
 		user = config.get(tm1_server_name, 'user')
 		password = keyring.get_password("TM1_%s"%(tm1_server_name), user)
@@ -39,6 +39,58 @@ def query_cube_view (config, view_definition):
 		# encode password in base64
 		config[tm1_server_name]['decode_b64'] = 'True'
 		config[tm1_server_name]['password'] = str(base64.b64encode(password.encode('utf-8')),'utf-8')
+
+def generate_mdx_statement_for_view(tm1, view_definition):
+	'''Generate an mdx statement based on json definition
+		and 'randomise' if required.
+	'''
+	axes = list()
+	for dim in view_definition['view_definition']:	
+		dim_elements = ''
+		if dim['type'] == 'element list':
+			# combine list of elements
+			list_of_dim_elements = list()
+			for el in dim['elements']:
+				dim_element = "[%s].[%s]"%(dim['dimension'], el['element'])
+				list_of_dim_elements.append(dim_element)
+				dim_elements = "{%s}" % (','.join(list_of_dim_elements))
+		elif dim['type'] == 'subset':
+			dim_elements = "TM1SubsetToSet([%s],'%s')"%(dim['dimension'],dim['subset_name'])
+		elif dim['type'] == 'random':
+			# create mdx based on selection
+			number_of_elements_to_return = int(dim['number_of_random_elements'])
+			list_of_dim_elements = list()
+			if dim['level_of_random_elements'] == 'All':
+				mdx_query_for_elements = "[%s].Members" % (dim['dimension'])
+			else:
+				mdx_query_for_elements = "TM1FilterByLevel([%s].Members,%s)" % (dim['dimension'], dim['level_of_random_elements'])
+			# limiting number of entries to something smaller than total elements just in case there's way too many
+			element_list = tm1.dimensions.hierarchies.elements.execute_set_mdx(mdx=mdx_query_for_elements, top_records=number_of_elements_to_return * 30)
+			for __ in range(1, number_of_elements_to_return):
+				dim_element = "[%s].[%s]"%(dim['dimension'], random.choice(element_list)[0]['Name'])
+				list_of_dim_elements.append(dim_element)
+			dim_elements = "{%s}" % (','.join(list_of_dim_elements))
+		axes.append(dim_elements)
+	row_axis = '*'.join(axes)
+	suppress_zeros = "NON EMPTY"	
+	if "suppress_zeros" in view_definition:
+		if view_definition['suppress_zeros'] == 'No':
+			suppress_zeros = ''
+	mdx_query = "SELECT %s %s on ROWS, {} on COLUMNS FROM [%s]" %(suppress_zeros, row_axis, view_definition['cube'] )
+	return mdx_query
+		
+def query_cube_view (config, view_definition):
+	"""Query cube view and return a cell_set.
+	supports quering native, mdx and random generated views
+	record the generated mdx for random views to support reverse checks
+	"""
+	view_read_start_time =  time.time()
+	tm1_server_name = view_definition ['server'] 
+	cube_name = view_definition ['cube']
+	logging.debug ("Reading source view from %s.%s" %(tm1_server_name,cube_name))
+	
+	get_tm1_user_name_and_password(config, tm1_server_name)
+	
 	if view_definition['view_type']=='native':
 		view_name = view_definition ['view_name']
 		with TM1Service(**config[tm1_server_name]) as tm1:
@@ -49,46 +101,11 @@ def query_cube_view (config, view_definition):
 		with TM1Service(**config[tm1_server_name]) as tm1:
 			cell_set = tm1.cubes.cells.execute_mdx(mdx_query)
 	elif view_definition['view_type']=='create':
-		# this is where we try to create a new view and somehow 'randomise it' by selecting different elements
 		# we are going to record this view back as [elements] for everything we generated randomly and assign it back
 		# view_definition['mdx'] = whatever we generate converted to mdx
-		logging.debug("generating mdx query on our definition")
 		view_name = view_definition['view_name'] 
-		axes = list()
 		with TM1Service(**config[tm1_server_name]) as tm1:
-			for dim in view_definition['view_definition']:	
-				dim_elements = ''
-				if dim['type'] == 'element list':
-					# combine list of elements
-					list_of_dim_elements = list()
-					for el in dim['elements']:
-						dim_element = "[%s].[%s]"%(dim['dimension'], el['element'])
-						list_of_dim_elements.append(dim_element)
-					dim_elements = "{%s}" % (','.join(list_of_dim_elements))
-				elif dim['type'] == 'subset':
-					dim_elements = "TM1SubsetToSet([%s],'%s')"%(dim['dimension'],dim['subset_name'])
-				elif dim['type'] == 'random':
-					# create mdx based on selection
-					number_of_elements_to_return = int(dim['number_of_random_elements'])
-					list_of_dim_elements = list()
-					if dim['level_of_random_elements'] == 'All':
-						mdx_query_for_elements = "[%s].Members" % (dim['dimension'])
-					else:
-						mdx_query_for_elements = "TM1FilterByLevel([%s].Members,%s)" % (dim['dimension'], dim['level_of_random_elements'])
-						# limiting number of entries to something smaller than total elements just in case there's way too many
-						element_list = tm1.dimensions.hierarchies.elements.execute_set_mdx(mdx=mdx_query_for_elements, top_records=number_of_elements_to_return * 30)
-						for __ in range(1, number_of_elements_to_return):
-							dim_element = "[%s].[%s]"%(dim['dimension'], random.choice(element_list)[0]['Name'])
-							list_of_dim_elements.append(dim_element)
-					dim_elements = "{%s}" % (','.join(list_of_dim_elements))
-				axes.append(dim_elements)
-			column_axis = "%s " % (axes.pop())
-			row_axis = '*'.join(axes)
-			suppress_zeros = "NON EMPTY"	
-			if "suppress_zeros" in view_definition:
-				if view_definition['suppress_zeros'] == 'No':
-					suppress_zeros = ''
-			mdx_query = "SELECT %s %s on ROWS, %s %s on COLUMNS FROM [%s]" %(suppress_zeros, row_axis, suppress_zeros, column_axis, view_definition['cube'] )
+			mdx_query = generate_mdx_statement_for_view(tm1, view_definition)
 			logging.debug ("MDX query generated: %s" %(mdx_query))
 			# updating view definition to make it mdx view for comparison
 			view_definition ['view_type'] = 'mdx'
@@ -98,12 +115,17 @@ def query_cube_view (config, view_definition):
 	else: 
 		logging.error("View type %s in test definition is not implemented" % (view_definition['view_type']) )
 		raise Exception('View type not implemented')
-	logging.info('%s.%s.%s view with %d cells read in %.2f'%( tm1_server_name, cube_name, view_name, len(cell_set),time.time()-view_read_start_time)) 
+	logging.info('Read %d cells from %s.%s.%s view in %.2f'%( len(cell_set), tm1_server_name, cube_name, view_name, time.time()-view_read_start_time)) 
 	return cell_set
 
 def write_cell_set_to_file(cell_set, file_name):
-	logging.info ("Exporting source view to file %s" %(file_name))
+	"""Export cell set to file for future comparisons
+	Storing as csv in cell , value format to make it readable
+	"""
+	file_write_start_time =  time.time()
+	logging.debug ("Exporting source view to file %s" %(file_name))
 	field_names = ['cell', 'value']
+	cell_count = 0
 	with  open(file_name, 'w', newline='')  as export_file:
 		# pickle is simpler but not human-readable
 		# pickle.dump(cell_set_source,export_file)
@@ -111,11 +133,15 @@ def write_cell_set_to_file(cell_set, file_name):
 		csv_writer.writeheader()
 		for cell in cell_set.keys():
 			csv_writer.writerow({'cell':cell,'value':cell_set[cell]})
+			cell_count += 1
+	logging.info("Wrote %i cells from source view to file %s in %.2f "%(cell_count, file_name, time.time()-file_write_start_time))
 
 def read_cell_set_from_file(file_name):
-	logging.info ("Reading source view from file %s" %(file_name))
-	# pickle is simpler but not human-readable
-	# pickle.dump(cell_set_source,export_file)
+	"""read cell set from file in cell, value format
+	"""
+	file_read_start_time =  time.time()
+	logging.debug ("Reading source view from file %s" %(file_name))
+	number_of_cells = 0
 	cell_set = CaseAndSpaceInsensitiveTuplesDict()
 	with open(file_name, 'r') as export_file:
 		field_names = ['cell', 'value']
@@ -123,62 +149,82 @@ def read_cell_set_from_file(file_name):
 		# skip header
 		next(csv_reader, None)
 		for row in csv_reader:
+			number_of_cells += 1
 			cell_set[literal_eval(row['cell'])] = literal_eval(row['value'])
+	logging.info ("Read %d cells from file %s in %.2f" %(number_of_cells,file_name,time.time()-file_read_start_time))
 	return cell_set
+
+# using dictdiffs comparison function
+def are_different(first, second, tolerance):
+	"""Check if 2 values are different.
+	In case of numerical values, the tolerance is used to check if the values
+	are different.
+	In all other cases, the difference is straight forward.
+	"""
+	if first == second:
+		# values are same - simple case
+		return False
+
+	first_is_nan, second_is_nan = bool(first != first), bool(second != second)
+
+	if first_is_nan or second_is_nan:
+		# two 'NaN' values are not different (see issue #114)
+		return not (first_is_nan and second_is_nan)
+	elif isinstance(first, num_types) and isinstance(second, num_types):
+		# two numerical values are compared with tolerance
+		return abs(first-second) > tolerance
+		# ykud: I get confused with epsilon tolerance, so using just the tolerance threshold
+		#* max(abs(first), abs(second))
+	# we got different values
+	return True
+
+def compare_and_add_to_list (diff_list, change_type, cell, source_value, target_value, check_tolerance):
+	if are_different(source_value, target_value, check_tolerance):
+					diff_list.append({'change_type': change_type, 'cell':cell, 'source_value':source_value, 'target_value':target_value})
 
 def compare_cell_sets(check_file, cell_set_source, cell_set_target, check_tolerance):
 	# Compare results
-	source_target_match = True
 	if (cell_set_source != cell_set_target):
-			variances_folder = 'variances/'
-			Path(variances_folder).mkdir(parents=True, exist_ok=True)
-			file_name_to_write_diff = join(variances_folder,"%s_%s.csv" % (Path(check_file).stem,time.strftime("%Y%m%d-%H%M%S")))
-			field_names = ['change_type', 'cell', 'source_value','target_value']
-			num_of_variances = 0
-			for diff in dictdiffer.diff(cell_set_source, cell_set_target):
-				# if change type is change -- compare values for tolerance, ignore this comparison for add or remove
-				recordVariance = False
-				change_type = diff[0]
-				if (change_type == 'change'):
-					# defaulting none values to 0
-					source_value = (0 if diff[2][0] is None else diff[2][0])
-					target_value = (0 if diff[2][1] is None else diff[2][1])
-					cell = diff[1][0]
-					# compare with given tolerance
-					if abs(source_value - target_value) > check_tolerance:
-						num_of_variances = num_of_variances + 1
-						recordVariance = True
-				elif change_type == 'add':
-					num_of_variances = num_of_variances + 1
-					source_value = 0
-					target_value = diff[2][0][1]['Value']
-					cell = diff[2][0][0]
-					recordVariance = True
-				elif change_type == 'remove':
-					num_of_variances = num_of_variances + 1
-					source_value = diff[2][0][1]['Value']
-					target_value = 0
-					cell = diff[2][0][0]
-					recordVariance = True
-				else:
-					raise Exception('Change type unknown')
-				# print header
-				if num_of_variances == 1:
-					diff_file = open(file_name_to_write_diff, 'w', newline='')
+			diff_list = list()
+			removed_cells = cell_set_source.keys() - cell_set_target
+			for cell in removed_cells:
+				compare_and_add_to_list(diff_list = diff_list, 
+										change_type = 'removed', 
+										cell=cell, 
+										source_value = cell_set_source[cell]['Value'], 
+										target_value = 0, 
+										check_tolerance = check_tolerance)
+			added_cells = cell_set_target.keys() - cell_set_source
+			for cell in added_cells:
+				compare_and_add_to_list(diff_list = diff_list, 
+										change_type = 'added', 
+										cell=cell, 
+										source_value = 0, 
+										target_value = cell_set_target[cell]['Value'], 
+										check_tolerance = check_tolerance)
+			for cell in cell_set_source.keys() & cell_set_target:
+				compare_and_add_to_list(diff_list = diff_list, 
+										change_type = 'changed', 
+										cell=cell, 
+										source_value = cell_set_source[cell]['Value'], 
+										target_value = cell_set_target[cell]['Value'], 
+										check_tolerance = check_tolerance)		
+			if len(diff_list):
+				variances_folder = 'variances/'
+				Path(variances_folder).mkdir(parents=True, exist_ok=True)
+				file_name_to_write_diff = join(variances_folder,"%s_%s.csv" % (Path(check_file).stem,time.strftime("%Y%m%d-%H%M%S")))
+				with open(file_name_to_write_diff, 'w', newline='') as diff_file:
+					field_names = ['change_type', 'cell', 'source_value','target_value']
 					csv_writer = csv.DictWriter(diff_file, fieldnames=field_names, quotechar='"',quoting=csv.QUOTE_ALL)
 					csv_writer.writeheader()
-					csv_writer.writerow({'change_type':change_type, 'cell':cell,'source_value':source_value, 'target_value':target_value})
-				if recordVariance: 
-					csv_writer.writerow({'change_type':change_type, 'cell':cell,'source_value':source_value, 'target_value':target_value})
-			if num_of_variances > 0:
-				diff_file.close()
-				logging.warning ("Source and target views do not match, %i cells vary, please find list of differences in the file %s" %(num_of_variances ,file_name_to_write_diff))
-				source_target_match = False
+					csv_writer.writerows(diff_list)	
+				logging.warning ("Source and target views do not match, %i cells vary, please find list of differences in the file %s" %(len(diff_list) ,file_name_to_write_diff))
+				return False
 			else:
 				logging.info ("Source and target views match within the given tolerance of %.8f" %(check_tolerance))
 	else:
 		logging.info ("Source and target views match absolutely")
-	return source_target_match
+	return True
 
 def generate_reverse_json_check_file(check_file_name, original_json,  target_export_file_name):
 		json_check_file_name_reverse = Path(check_file_name).with_name("reverse_%s.json" % (Path(check_file_name).stem))
