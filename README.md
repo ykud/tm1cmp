@@ -37,10 +37,12 @@ Views can be:
 ```
 - running `tm1cmp.exe -i check_file.json` will export data from selected view to a file and generate a reverse definition check of this file agains the view
 - any variances in comparison will generate a 'source ' vs 'target' comparison csv file like this:
-|change_type|cell|source_value|target_value|
-|---|---|---|---|
-|change|('[plan_version].[plan_version].[FY 2004 Budget]', ..., '[plan_time].[plan_time].[Q2-2004]')|438828258.9301186|438828258.9301184|
-|add|('[plan_version].[plan_version].[FY 2004 Budget]', ... ,'[plan_time].[plan_time].[2004]')|0|4135447577.641119|
+
+| change_type |cell | source_value | target_value |
+| --- | --- | --- | --- |
+| change |('[plan_version].[plan_version].[FY 2004 Budget]', ..., '[plan_time].[plan_time].[Q2-2004]') | 438828258.9301186 | 438828258.9301184 |
+| add | ('[plan_version].[plan_version].[FY 2004 Budget]', ... ,'[plan_time].[plan_time].[2004]') | 0 | 4135447577.641119 |
+
 - connection [config file](config.ini) should contain the required information to connect to your TM1 instance, all TM1 authentication modes are supported
 
 # How to run:
@@ -56,8 +58,8 @@ Views can be:
 
 # How to build exe from source
 - required libraries:
--- keyring
--- TM1Py
+- - keyring
+- - TM1Py
 - [pyinstaller command to build exe](pyinstaller_build_win.bat)
 
 # Ideas and enhancements
