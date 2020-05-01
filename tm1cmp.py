@@ -125,7 +125,6 @@ def write_cell_set_to_file(cell_set, file_name):
 	file_write_start_time =  time.time()
 	logging.debug ("Exporting source view to file %s" %(file_name))
 	field_names = ['cell', 'value']
-	cell_count = 0
 	with  open(file_name, 'w', newline='')  as export_file:
 		# pickle is simpler but not human-readable
 		# pickle.dump(cell_set_source,export_file)
@@ -133,15 +132,13 @@ def write_cell_set_to_file(cell_set, file_name):
 		csv_writer.writeheader()
 		for cell in cell_set.keys():
 			csv_writer.writerow({'cell':cell,'value':cell_set[cell]})
-			cell_count += 1
-	logging.info("Wrote %i cells from source view to file %s in %.2f "%(cell_count, file_name, time.time()-file_write_start_time))
+	logging.info("Wrote %i cells from source view to file %s in %.2f "%(len(cell_set), file_name, time.time()-file_write_start_time))
 
 def read_cell_set_from_file(file_name):
 	"""read cell set from file in cell, value format
 	"""
 	file_read_start_time =  time.time()
 	logging.debug ("Reading source view from file %s" %(file_name))
-	number_of_cells = 0
 	cell_set = CaseAndSpaceInsensitiveTuplesDict()
 	with open(file_name, 'r') as export_file:
 		field_names = ['cell', 'value']
@@ -149,9 +146,8 @@ def read_cell_set_from_file(file_name):
 		# skip header
 		next(csv_reader, None)
 		for row in csv_reader:
-			number_of_cells += 1
 			cell_set[literal_eval(row['cell'])] = literal_eval(row['value'])
-	logging.info ("Read %d cells from file %s in %.2f" %(number_of_cells,file_name,time.time()-file_read_start_time))
+	logging.info ("Read %d cells from file %s in %.2f" %(len(cell_set),file_name,time.time()-file_read_start_time))
 	return cell_set
 
 # using dictdiffs comparison function
